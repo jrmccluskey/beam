@@ -216,12 +216,12 @@ if __name__ == '__main__':
         # using older version of dill. It is best to use the same version of
         # dill on client and server, therefore list of allowed versions is very
         # narrow. See: https://github.com/uqfoundation/dill/issues/341.
-        'dill>=0.3.1.1,<0.3.2',
+        'dill>=0.3.1.1,<0.3.6',
         # It is prudent to use the same version of pickler at job submission
         # and at runtime, therefore bounds need to be tight.
         # To avoid depending on an old dependency, update the minor version on
         # every Beam release, see: https://github.com/apache/beam/issues/23119
-        'cloudpickle~=2.1.0',
+        'cloudpickle~=2.2.0',
         'fastavro>=0.23.6,<2',
         'grpcio>=1.33.1,!=1.48.0,<2',
         'hdfs>=2.1.0,<3.0.0',
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         'numpy>=1.14.3,<1.23.0',
         'objsize>=0.5.2,<1',
         'pymongo>=3.8.0,<4.0.0',
-        'protobuf>=3.12.2,!=3.20.2,<4',
+        'protobuf>=3.12.2,<4',
         'proto-plus>=1.7.1,<2',
         'pydot>=1.2.0,<2',
         'python-dateutil>=2.8.0,<3',
@@ -253,7 +253,6 @@ if __name__ == '__main__':
           ],
           'test': [
             'freezegun>=0.3.12',
-            'hypothesis<7',
             'joblib>=1.0.1',
             'mock>=1.0.1,<3.0.0',
             'pandas<2.0.0',
@@ -286,7 +285,7 @@ if __name__ == '__main__':
             'google-cloud-pubsub>=2.1.0,<3',
             'google-cloud-pubsublite>=1.2.0,<2',
             # GCP packages required by tests
-            'google-cloud-bigquery>=1.6.0,<3',
+            'google-cloud-bigquery>=1.6.0,<4',
             'google-cloud-bigquery-storage>=2.6.3,<2.14',
             'google-cloud-core>=0.28.1,<3',
             'google-cloud-bigtable>=0.31.1,<2',
