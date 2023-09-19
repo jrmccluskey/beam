@@ -174,6 +174,12 @@ class AnyTypeConstraintTestCase(TypeHintTestCase):
     typehints.Any.type_check([1, 2, 3])
     typehints.Any.type_check(DummyTestClass1())
 
+  def test_consistency_with_typing_any(self):
+    # This is to cover cases where we aren't normalized to Beam types
+    self.assertTrue(is_consistent_with(bytes, typing.Any))
+    self.assertCompatible(bytes, typehints.Any)
+    self.assertCompatible(bytes, typing.Any)
+
 
 class UnionHintTestCase(TypeHintTestCase):
   def test_getitem_must_be_valid_type_param_cant_be_object_instance(self):

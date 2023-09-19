@@ -1243,10 +1243,10 @@ def is_consistent_with(sub, base):
   if sub == base:
     # Common special case.
     return True
-  if isinstance(sub, AnyTypeConstraint) or isinstance(base, AnyTypeConstraint):
-    return True
   sub = normalize(sub, none_as_type=True)
   base = normalize(base, none_as_type=True)
+  if isinstance(sub, AnyTypeConstraint) or isinstance(base, AnyTypeConstraint):
+    return True
   if isinstance(sub, UnionConstraint):
     return all(is_consistent_with(c, base) for c in sub.union_types)
   elif isinstance(base, TypeConstraint):
