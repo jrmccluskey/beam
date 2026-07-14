@@ -17,7 +17,7 @@
 ###############################################################################
 
 ARG py_version
-FROM python:"${py_version}"-bookworm as beam
+FROM python:"${py_version}"-bookworm as builder
 LABEL Author "Apache Beam <dev@beam.apache.org>"
 ARG TARGETOS
 ARG TARGETARCH
@@ -29,7 +29,6 @@ COPY target/launcher/${TARGETOS}_${TARGETARCH}/boot target/LICENSE target/NOTICE
 
 ENV CLOUDSDK_CORE_DISABLE_PROMPTS yes
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
-ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
 
 # Use one RUN command to reduce the number of layers.
 ARG py_version
@@ -72,7 +71,6 @@ RUN  \
     /usr/local/gcloud/google-cloud-sdk/install.sh && \
     rm -rf /usr/local/gcloud/google-cloud-sdk/.install/.backup && \
     rm google-cloud-sdk.tar.gz && \
-    rm -rf /usr/local/gcloud/google-cloud-sdk/platform/bundledpythonunix && \
 
     # Configure ccache prior to installing Beam SDK. This speeds up wheels compilation when installing the SDK from sources.
     ln -s /usr/bin/ccache /usr/local/bin/gcc && \
@@ -106,11 +104,7 @@ RUN  \
     if [ "${py_version}" = "3.10" ] || [ "${py_version}" = "3.11" ]; then \
         pip uninstall upgrade_ensurepip -y; \
     fi; \
-    python3 -m ensurepip && \
-    rm -f /usr/local/bin/gcc && \
-    apt-get purge -y --auto-remove ccache && \
-    rm -rf /root/.cache/ccache /root/.config/ccache && \
-    rm -rf /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale/*
+    python3 -m ensurepip;
 
 ENTRYPOINT ["/opt/apache/beam/boot"]
 
@@ -120,7 +114,7 @@ ENTRYPOINT ["/opt/apache/beam/boot"]
 # extra dependencies needed to pull licenses.
 ####
 
-FROM beam as third_party_licenses
+FROM builder as third_party_licenses
 ARG pull_licenses
 COPY target/license_scripts /tmp/license_scripts/
 
@@ -133,9 +127,33 @@ RUN if [ "$pull_licenses" = "true" ] ; then \
       python /tmp/license_scripts/pull_licenses_py.py ; \
     fi
 
-FROM beam
+FROM python:"${py_version}"-slim-bookworm
+ARG py_version
 ARG pull_licenses
+
+# Install runtime packages
+RUN apt-get update && \
+    apt-get install -y \
+       libsnappy1v5 \
+       libyaml-0-2 \
+       libgeos-c1v5 \
+       google-perftools \
+       && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy from builder
+COPY --from=builder /usr/local/lib/python${py_version}/site-packages /usr/local/lib/python${py_version}/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/gcloud /usr/local/gcloud
+COPY --from=builder /opt/apache/beam /opt/apache/beam
+
+ENV CLOUDSDK_CORE_DISABLE_PROMPTS yes
+ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
+ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
+
 COPY --from=third_party_licenses /opt/apache/beam/third_party_licenses /opt/apache/beam/third_party_licenses
 RUN if [ "$pull_licenses" != "true" ] ; then \
       rm -rf /opt/apache/beam/third_party_licenses ; \
     fi
+
+ENTRYPOINT ["/opt/apache/beam/boot"]
