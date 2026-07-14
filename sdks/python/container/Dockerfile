@@ -71,6 +71,7 @@ RUN  \
     /usr/local/gcloud/google-cloud-sdk/install.sh && \
     rm -rf /usr/local/gcloud/google-cloud-sdk/.install/.backup && \
     rm google-cloud-sdk.tar.gz && \
+    rm -rf /usr/local/gcloud/google-cloud-sdk/platform/bundledpythonunix && \
 
     # Configure ccache prior to installing Beam SDK. This speeds up wheels compilation when installing the SDK from sources.
     ln -s /usr/bin/ccache /usr/local/bin/gcc && \
