@@ -29,6 +29,7 @@ COPY target/launcher/${TARGETOS}_${TARGETARCH}/boot target/LICENSE target/NOTICE
 
 ENV CLOUDSDK_CORE_DISABLE_PROMPTS yes
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
+ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
 
 # Use one RUN command to reduce the number of layers.
 ARG py_version
@@ -71,6 +72,7 @@ RUN  \
     /usr/local/gcloud/google-cloud-sdk/install.sh && \
     rm -rf /usr/local/gcloud/google-cloud-sdk/.install/.backup && \
     rm google-cloud-sdk.tar.gz && \
+    rm -rf /usr/local/gcloud/google-cloud-sdk/platform/bundledpythonunix && \
 
     # Configure ccache prior to installing Beam SDK. This speeds up wheels compilation when installing the SDK from sources.
     ln -s /usr/bin/ccache /usr/local/bin/gcc && \
@@ -104,7 +106,11 @@ RUN  \
     if [ "${py_version}" = "3.10" ] || [ "${py_version}" = "3.11" ]; then \
         pip uninstall upgrade_ensurepip -y; \
     fi; \
-    python3 -m ensurepip;
+    python3 -m ensurepip && \
+    rm -f /usr/local/bin/gcc && \
+    apt-get purge -y --auto-remove ccache && \
+    rm -rf /root/.cache/ccache /root/.config/ccache && \
+    rm -rf /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale/*
 
 ENTRYPOINT ["/opt/apache/beam/boot"]
 
