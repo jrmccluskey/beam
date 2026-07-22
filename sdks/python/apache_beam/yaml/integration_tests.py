@@ -78,7 +78,7 @@ import pyarrow.parquet as pq
 import pytds
 import sqlalchemy
 import yaml
-from apitools.base.py.exceptions import HttpError
+from google.api_core.exceptions import GoogleAPICallError
 from google.cloud import bigquery as gcp_bigquery
 from google.cloud import pubsub_v1
 from google.cloud.bigtable import client
@@ -242,7 +242,7 @@ def temp_bigtable_table(project, prefix='yaml_bt_it_'):
     _LOGGER.info("Deleting table [%s]", table.table_id)
     table.delete()
     instanceT.delete()
-  except HttpError:
+  except GoogleAPICallError:
     _LOGGER.warning("Failed to clean up instance")
 
 
