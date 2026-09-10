@@ -35,5 +35,11 @@ public enum FileCategory {
   MANIFEST_LIST,
 
   /** Iceberg Puffin statistics file. */
-  STATISTICS
+  STATISTICS,
+
+  /** Iceberg table metadata files (metadata JSON, version hint). */
+  OTHER_METADATA,
+
+  /** File with unknown or unclassified purpose. */
+  UNKNOWN
 }

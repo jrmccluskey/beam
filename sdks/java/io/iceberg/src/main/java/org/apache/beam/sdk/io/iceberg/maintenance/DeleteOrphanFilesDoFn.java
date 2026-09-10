@@ -38,18 +38,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Worker DoFn that deletes batched unreferenced files from storage and emits partial deletion
- * metrics.
+ * Worker DoFn that deletes batched unreferenced orphan files from storage and emits partial
+ * deletion metrics.
  */
-public class DeleteFilesDoFn
-    extends DoFn<KV<ShardedKey<String>, Iterable<FileInfo>>, ExpireSnapshotsResult> {
+public class DeleteOrphanFilesDoFn
+    extends DoFn<KV<ShardedKey<String>, Iterable<FileInfo>>, DeleteOrphanFilesResult> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DeleteFilesDoFn.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DeleteOrphanFilesDoFn.class);
 
   private final IcebergCatalogConfig catalogConfig;
-  private final ExpireSnapshots.Configuration config;
+  private final DeleteOrphanFiles.Configuration config;
 
-  public DeleteFilesDoFn(IcebergCatalogConfig catalogConfig, ExpireSnapshots.Configuration config) {
+  public DeleteOrphanFilesDoFn(
+      IcebergCatalogConfig catalogConfig, DeleteOrphanFiles.Configuration config) {
     this.catalogConfig = catalogConfig;
     this.config = config;
   }
@@ -57,7 +58,7 @@ public class DeleteFilesDoFn
   @ProcessElement
   public void processElement(
       @Element KV<ShardedKey<String>, Iterable<FileInfo>> element,
-      OutputReceiver<ExpireSnapshotsResult> out) {
+      OutputReceiver<DeleteOrphanFilesResult> out) {
     String tableIdString = element.getKey().getKey();
     if (tableIdString == null || tableIdString.isEmpty()) {
       return;
@@ -83,12 +84,13 @@ public class DeleteFilesDoFn
     if (config.cleanFiles()) {
       failedPaths = deletePaths(io, paths);
       if (!failedPaths.isEmpty()) {
-        Metrics.counter(DeleteFilesDoFn.class, "failed_file_deletions").inc(failedPaths.size());
+        Metrics.counter(DeleteOrphanFilesDoFn.class, "failed_file_deletions")
+            .inc(failedPaths.size());
       }
     } else {
       LOG.info(
-          ExpireSnapshots.PREFIX
-              + "Dry run enabled (cleanFiles=false); skipping physical deletion of {} file(s).",
+          DeleteOrphanFiles.PREFIX
+              + "Dry run enabled (cleanFiles=false); skipping physical deletion of {} orphan file(s).",
           paths.size());
     }
 
@@ -97,7 +99,7 @@ public class DeleteFilesDoFn
     long eqDeleteCount = 0;
     long manifestCount = 0;
     long manifestListCount = 0;
-    long statsCount = 0;
+    long otherMetadataCount = 0;
 
     for (FileInfo file : fileList) {
       if (failedPaths.contains(file.getPath())) {
@@ -123,19 +125,28 @@ public class DeleteFilesDoFn
         case OTHER_METADATA:
         case UNKNOWN:
         default:
-          statsCount++;
+          otherMetadataCount++;
           break;
       }
     }
 
+    long totalOrphanCount =
+        dataCount
+            + posDeleteCount
+            + eqDeleteCount
+            + manifestCount
+            + manifestListCount
+            + otherMetadataCount;
+
     out.output(
-        ExpireSnapshotsResult.builder()
+        DeleteOrphanFilesResult.builder()
+            .setOrphanFilesCount(totalOrphanCount)
             .setDeletedDataFilesCount(dataCount)
             .setDeletedPositionDeleteFilesCount(posDeleteCount)
             .setDeletedEqualityDeleteFilesCount(eqDeleteCount)
             .setDeletedManifestsCount(manifestCount)
             .setDeletedManifestListsCount(manifestListCount)
-            .setDeletedStatisticsFilesCount(statsCount)
+            .setDeletedOtherMetadataFilesCount(otherMetadataCount)
             .build());
   }
 
@@ -145,7 +156,7 @@ public class DeleteFilesDoFn
    *
    * @return set of paths that failed to be deleted
    */
-  static Set<String> deletePaths(FileIO io, List<String> paths) {
+  public static Set<String> deletePaths(FileIO io, List<String> paths) {
     Set<String> failedPaths = new HashSet<>();
     if (paths.isEmpty()) {
       return failedPaths;
@@ -156,14 +167,14 @@ public class DeleteFilesDoFn
         return failedPaths;
       } catch (BulkDeletionFailureException e) {
         LOG.warn(
-            ExpireSnapshots.PREFIX
+            DeleteOrphanFiles.PREFIX
                 + "Bulk delete failed for {} of {} files. Retrying individually.",
             e.numberFailedObjects(),
             paths.size(),
             e);
       } catch (RuntimeException e) {
         LOG.warn(
-            ExpireSnapshots.PREFIX
+            DeleteOrphanFiles.PREFIX
                 + "Bulk delete raised non-bulk exception; falling back to per-file deletion.",
             e);
       }
@@ -174,9 +185,10 @@ public class DeleteFilesDoFn
         io.deleteFile(path);
       } catch (NotFoundException e) {
         LOG.debug(
-            ExpireSnapshots.PREFIX + "File {} not found during deletion (already removed).", path);
+            DeleteOrphanFiles.PREFIX + "File {} not found during deletion (already removed).",
+            path);
       } catch (Exception e) {
-        LOG.warn(ExpireSnapshots.PREFIX + "Failed to delete file {}.", path, e);
+        LOG.warn(DeleteOrphanFiles.PREFIX + "Failed to delete file {}.", path, e);
         failedPaths.add(path);
       }
     }
