@@ -153,7 +153,7 @@ else:
     # Generally try to cover versions released in the last two years.
     # Update python/sdks/tox.ini to cover the same pyarrow versions
     # when updating the bounds here.
-    'pyarrow>=14.0.1,<26.0.0',
+    'pyarrow>=14.0.1,<27.0.0',
   ]
 
 # Exclude pandas<=1.4.2 since it doesn't work with numpy 1.24.x.
@@ -451,7 +451,7 @@ if __name__ == '__main__':
           'typing-extensions>=3.7.0',
           'zstandard>=0.18.0,<1',
           'pyyaml>=3.12,<7.0.0',
-          'beartype>=0.21.0,<0.23.0',
+          'beartype>=0.21.0,<0.24.0',
           # Dynamic dependencies must be specified in a separate list, otherwise
           # Dependabot won't be able to parse the main list. Any dynamic
           # dependencies will not receive updates from Dependabot.
@@ -500,7 +500,7 @@ if __name__ == '__main__':
               'pytest>=7.1.2,<10.0',
               'pytest-xdist>=2.5.0,<4',
               'pytest-timeout>=2.1.0,<3',
-              'scikit-learn>=0.20.0,<1.8.0',
+              'scikit-learn>=0.20.0,<2.0.0',
               'sqlalchemy>=1.3,<3.0',
               'psycopg2-binary>=2.8.5,<3.0',
               'testcontainers[mysql,kafka,milvus,qdrant]>=4.0.0,<5.0.0',
